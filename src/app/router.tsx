@@ -1,56 +1,113 @@
-import { createRouter, createRoute, createRootRoute, redirect } from '@tanstack/react-router';
+import {
+  createRouter,
+  createRoute,
+  createRootRoute,
+  redirect,
+} from '@tanstack/react-router';
+
 import { Layout } from '../components/layout/Layout';
 import { Login } from '../routes/login';
+import { RegisterPage } from '../routes/register';
 import { Dashboard } from '../routes/dashboard';
-import { useAuthStore } from '../features/auth/store';
-import * as React from 'react';
+import { Blocks } from '../routes/blocks';
+import { Pieces } from '../routes/pieces';
+import { Reports } from '../routes/reports';
 
-// Define the root route
+import { useAuthStore } from '../features/auth/store';
+
 const rootRoute = createRootRoute({});
 
-// Public login route
+const requireAuth = () => {
+  const token = useAuthStore.getState().token;
+  const isAuthenticated = useAuthStore.getState().isAuthenticated;
+
+  if (!token || !isAuthenticated) {
+    throw redirect({ to: '/login' });
+  }
+};
+
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   component: Login,
   beforeLoad: () => {
-    // Redirect to home if already authenticated
-    if (useAuthStore.getState().isAuthenticated) {
+    const token = useAuthStore.getState().token;
+
+    if (token) {
       throw redirect({ to: '/' });
     }
   },
 });
 
-// Protected layout route wrapping the dashboard
-const layoutRoute = createRoute({
+const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
-  id: 'layout',
-  component: Layout,
+  path: '/register',
+  component: RegisterPage,
   beforeLoad: () => {
-    // Redirect to login if not authenticated
-    if (!useAuthStore.getState().isAuthenticated) {
-      throw redirect({ to: '/login' });
+    const token = useAuthStore.getState().token;
+
+    if (token) {
+      throw redirect({ to: '/' });
     }
   },
 });
 
-// Dashboard route (child of layout)
+const layoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: 'layout',
+  component: Layout,
+  beforeLoad: requireAuth,
+});
+
 const indexRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: '/',
   component: Dashboard,
 });
 
-// Create route tree
+const blocksRoute = createRoute({
+  getParentRoute: () => layoutRoute,
+  path: '/projects/$projectId/blocks',
+  component: Blocks,
+  beforeLoad: ({ params }) => {
+    if (!params.projectId) {
+      throw redirect({ to: '/' });
+    }
+  },
+});
+
+const piecesRoute = createRoute({
+  getParentRoute: () => layoutRoute,
+  path: '/blocks/$blockId/pieces',
+  component: Pieces,
+  beforeLoad: ({ params }) => {
+    if (!params.blockId) {
+      throw redirect({ to: '/' });
+    }
+  },
+});
+
+const reportsRoute = createRoute({
+  getParentRoute: () => layoutRoute,
+  path: '/reports',
+  component: Reports,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  layoutRoute.addChildren([indexRoute]),
+  registerRoute,
+  layoutRoute.addChildren([
+    indexRoute,
+    blocksRoute,
+    piecesRoute,
+    reportsRoute,
+  ]),
 ]);
 
-// Create the router
-export const router = createRouter({ routeTree });
+export const router = createRouter({
+  routeTree,
+});
 
-// Register router for type safety
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;

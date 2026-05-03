@@ -1,12 +1,20 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchProjects } from './api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchProjects, createProject } from './api';
 
-/**
- * Hook to fetch and cache projects.
- */
 export const useProjects = () => {
   return useQuery({
     queryKey: ['projects'],
     queryFn: fetchProjects,
+  });
+};
+
+export const useCreateProject = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
   });
 };
