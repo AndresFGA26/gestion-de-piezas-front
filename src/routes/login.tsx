@@ -7,7 +7,7 @@ import { Link } from '@tanstack/react-router';
 export const Login = () => {
   const { mutate: login, isPending, error } = useLogin();
   const [email, setEmail] = useState('admin@test.com');
-  const [password, setPassword] = useState('123456');
+  const [password, setPassword] = useState('12345678');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
