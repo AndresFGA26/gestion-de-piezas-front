@@ -108,8 +108,8 @@ const errorInterceptor = async (error: any) => {
     }
   }
 
-  if (error.response?.status === 403 || error.response?.status === 401) {
-    console.warn('Access denied, logging out');
+  if (error.response?.status === 403) {
+    console.warn('Access forbidden, logging out');
     useAuthStore.getState().logout();
     window.location.href = '/login';
   }

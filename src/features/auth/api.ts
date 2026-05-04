@@ -47,7 +47,7 @@ export const loginApi = async (credentials: LoginCredentials): Promise<{ user: U
   const loginResponse = await authApi.post<ApiResponse<LoginResponseData>>('/login', credentials);
   const { access_token, refresh_token } = loginResponse.data.data;
 
-  const profileResponse = await authApi.get<ApiResponse<User>>('/profile', {
+  const profileResponse = await authApi.get<ApiResponse<User>>('/me', {
     headers: {
       Authorization: `Bearer ${access_token}`,
     },

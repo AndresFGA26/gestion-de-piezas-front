@@ -1,13 +1,21 @@
-# 🎨 Frontend - Aplicación React de Gestión de Piezas
+# 🎨 Frontend - Gestión de Piezas
 
-## 📋 Descripción
+## 📋 Descripción del Aplicación
 
-Aplicación web moderna construida con React 19, TypeScript y TailwindCSS para la gestión completa de piezas metálicas. Interfaz intuitiva y responsiva que consume los microservicios de autenticación y gestión de piezas.
+Aplicación React 19+ SPA (Single Page Application) moderna para la gestión completa del ciclo de vida de piezas de manufactura. Implementa una interfaz de usuario intuitiva con autenticación JWT, CRUD completo, visualización de datos en tiempo real y una experiencia de usuario optimizada para entornos de producción.
 
-## 🏗️ Arquitectura
+## 🏗️ Arquitectura General del Sistema
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │  Auth Service   │    │ Pieces Service  │
+│   (React SPA)   │◄──►│  (Laravel JWT)  │◄──►│  (Laravel API)  │
+│                 │    │                 │    │                 │
+│ - React 19+     │    │ - JWT Tokens    │    │ - Business Logic│
+│ - TypeScript    │    │ - User Mgmt     │    │ - Data Models   │
+│ - Tailwind CSS  │    │ - Session Mgmt  │    │ - CRUD API      │
+│ - React Query   │    │ - Token Refresh │    │ - Reports       │
+│ - Zustand Store │    │ - Validation    │    │ - Calculations  │
 │   Frontend     │◄──►│  Auth Service   │◄──►│ Pieces Service │
 │   React/TS     │ JWT │   (Laravel)     │ JWT │   (Laravel)     │
 │   Port: 5173    │    │   Port: 8000    │    │   Port: 8001    │

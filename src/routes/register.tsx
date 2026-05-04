@@ -63,7 +63,7 @@ export function RegisterPage() {
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData(prev => ({ ...prev, [name as keyof typeof formData]: value }))
     
     // Limpiar error cuando el usuario empieza a escribir
     if (errors[name as keyof typeof errors]) {
@@ -71,12 +71,17 @@ export function RegisterPage() {
     }
   }
   
-  const getInputClasses = (fieldName: string) => {
+  const getInputClasses = (fieldName: keyof typeof formData) => {
     const baseClasses = "w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
     const errorClass = errors[fieldName] ? "border-red-500 focus:ring-red-500" : "border-gray-300"
     const successClass = formData[fieldName] && !errors[fieldName] ? "border-green-500 focus:ring-green-500" : ""
     
-    return `${baseClasses} ${errorClass} ${successClass}`
+    // Agregar padding-left para iconos y padding-right para botones
+    const hasLeftIcon = true // Todos los campos tienen icono izquierdo
+    const hasRightButton = fieldName.includes('password') ? 'pr-10' : formData[fieldName] && !errors[fieldName] ? 'pr-10' : ''
+    const leftPadding = hasLeftIcon ? 'pl-10' : ''
+    
+    return `${baseClasses} ${errorClass} ${successClass} ${leftPadding} ${hasRightButton}`
   }
   
   return (
@@ -187,7 +192,7 @@ export function RegisterPage() {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
-                  className={`${getInputClasses('password')} pr-10`}
+                  className={getInputClasses('password')}
                   placeholder="Mínimo 8 caracteres"
                   value={formData.password}
                   onChange={handleChange}
@@ -227,7 +232,7 @@ export function RegisterPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
-                  className={`${getInputClasses('password_confirmation')} pr-10`}
+                  className={getInputClasses('password_confirmation')}
                   placeholder="Repite tu contraseña"
                   value={formData.password_confirmation}
                   onChange={handleChange}

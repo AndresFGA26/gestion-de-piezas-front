@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchPieces, createPiece } from './api';
+import { fetchPieces, createPiece, updatePiece, deletePiece } from './api';
 
 export const usePieces = (blockId: string) => {
   return useQuery({
@@ -33,6 +33,45 @@ export const useCreatePiece = () => {
     },
     onError: (error) => {
       console.error('Error creating piece:', error);
+    },
+  });
+};
+
+export const useUpdatePiece = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { peso_teorico: number; peso_real?: number } }) => 
+      updatePiece(id, data),
+    onSuccess: () => {
+      // Invalidar queries específicos para refrescar datos
+      queryClient.invalidateQueries({ queryKey: ['pieces'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      
+      // Invalidar queries de blocks para asegurar consistencia
+      queryClient.invalidateQueries({ queryKey: ['blocks'] });
+    },
+    onError: (error) => {
+      console.error('Error updating piece:', error);
+    },
+  });
+};
+
+export const useDeletePiece = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: number) => deletePiece(id),
+    onSuccess: () => {
+      // Invalidar queries específicos para refrescar datos
+      queryClient.invalidateQueries({ queryKey: ['pieces'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      
+      // Invalidar queries de blocks para asegurar consistencia
+      queryClient.invalidateQueries({ queryKey: ['blocks'] });
+    },
+    onError: (error) => {
+      console.error('Error deleting piece:', error);
     },
   });
 };

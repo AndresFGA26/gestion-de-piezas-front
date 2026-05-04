@@ -5,38 +5,30 @@ import { API_CONFIG, extractApiError } from '../../config/api';
 
 export const fetchPieces = async (blockId: string): Promise<Piece[]> => {
   try {
-    const response = await piecesApi.get<ApiResponse<Piece[]>>(API_CONFIG.pieces.endpoints.pieces(blockId));
+    const response = await piecesApi.get<ApiResponse<any>>(API_CONFIG.pieces.endpoints.pieces(blockId));
 
-    // Validación robusta: asegura que siempre retorna un array válido
-    const piecesData = response.data?.data;
+    // Manejar respuesta paginada de Laravel
+    const responseData = response.data;
 
-    if (!Array.isArray(piecesData)) {
-      console.warn('Backend returned invalid pieces data, expected array but got:', piecesData);
-      
-      // Si es paginación de Laravel, extraer los datos correctamente
-      if (piecesData && typeof piecesData === 'object' && 'data' in piecesData) {
-        const paginatedData = (piecesData as any).data;
-        if (Array.isArray(paginatedData)) {
-          return paginatedData;
-        }
-      }
-      
+    if (!responseData || !responseData.data) {
+      console.warn('Backend returned no pieces data:', response.data);
       return [];
     }
 
-    // Validar que cada pieza tenga la estructura correcta
-    const validatedPieces = piecesData.filter(piece => 
-      piece && 
-      typeof piece === 'object' && 
-      'id' in piece && 
-      'peso_teorico' in piece
-    );
-
-    if (validatedPieces.length !== piecesData.length) {
-      console.warn('Some pieces had invalid structure and were filtered out');
+    // Si es paginado (estructura Laravel), extraer los datos del array
+    if (responseData.data && Array.isArray(responseData.data.data)) {
+      console.log('Pieces fetched (paginated):', responseData.data.data.length, 'pieces');
+      return responseData.data.data;
     }
 
-    return validatedPieces;
+    // Si es array directo (fallback)
+    if (Array.isArray(responseData.data)) {
+      console.log('Pieces fetched (direct):', responseData.data.length, 'pieces');
+      return responseData.data;
+    }
+
+    console.warn('Backend returned invalid pieces data:', responseData);
+    return [];
   } catch (error) {
     console.error('Error fetching pieces:', error);
     throw error;
@@ -70,6 +62,52 @@ export const createPiece = async (
     return pieceData;
   } catch (error: any) {
     console.error('Error creating piece:', error);
+    throw new Error(extractApiError(error));
+  }
+};
+
+/**
+ * Updates an existing piece.
+ */
+export const updatePiece = async (
+  id: number,
+  data: { peso_teorico: number; peso_real?: number }
+): Promise<Piece> => {
+  try {
+    console.log('Updating piece:', { id, data });
+    const response = await piecesApi.put<ApiResponse<Piece>>(`/pieces/${id}`, data);
+
+    console.log('Update response:', response.data);
+
+    const pieceData = response.data?.data;
+
+    if (!pieceData || typeof pieceData !== 'object') {
+      console.error('Backend returned invalid piece data:', response.data);
+      throw new Error('El backend devolvió datos de pieza inválidos');
+    }
+
+    if (!('id' in pieceData) || !('peso_teorico' in pieceData)) {
+      console.error('Piece missing required fields:', pieceData);
+      throw new Error('La pieza actualizada no tiene los campos requeridos');
+    }
+
+    console.log('Piece updated successfully:', pieceData);
+    return pieceData;
+  } catch (error: any) {
+    console.error('Error updating piece:', error);
+    console.error('Error details:', error.response?.data || error.message);
+    throw new Error(extractApiError(error));
+  }
+};
+
+/**
+ * Deletes a piece.
+ */
+export const deletePiece = async (id: number): Promise<void> => {
+  try {
+    await piecesApi.delete(`/pieces/${id}`);
+  } catch (error: any) {
+    console.error('Error deleting piece:', error);
     throw new Error(extractApiError(error));
   }
 };

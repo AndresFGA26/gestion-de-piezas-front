@@ -1,18 +1,26 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { useParams, Link } from '@tanstack/react-router';
-import { useBlocks, useCreateBlock } from '../features/blocks/hooks';
+import { useBlocks, useCreateBlock, useUpdateBlock, useDeleteBlock } from '../features/blocks/hooks';
 import { Box, Plus, Loader2, ArrowLeft, GitMerge } from 'lucide-react';
 import { AlertError } from '../components/ui/AlertError';
+import { ActionButtons } from '../components/ui/ActionButtons';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 export const Blocks = () => {
   const { projectId } = useParams({ strict: false });
   const safeProjectId = projectId as string;
   const { data: blocks = [], isLoading, error: fetchError } = useBlocks(safeProjectId);
   const { mutate: createBlock, isPending: isCreating, error: createError, reset: resetError } = useCreateBlock();
+  const { mutate: updateBlock, isPending: isUpdating } = useUpdateBlock();
+  const { mutate: deleteBlock, isPending: isDeleting } = useDeleteBlock();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [newBlockName, setNewBlockName] = useState('');
+  const [editBlockName, setEditBlockName] = useState('');
+  const [selectedBlock, setSelectedBlock] = useState<{ id: number; name: string } | null>(null);
 
   const handleCreateBlock = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +34,42 @@ export const Blocks = () => {
         },
       }
     );
+  };
+
+  const handleEditBlock = (block: { id: number; name: string }) => {
+    setSelectedBlock(block);
+    setEditBlockName(block.name);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateBlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editBlockName.trim() || !selectedBlock) return;
+    updateBlock(
+      { id: selectedBlock.id, data: { name: editBlockName } },
+      {
+        onSuccess: () => {
+          setIsEditModalOpen(false);
+          setEditBlockName('');
+          setSelectedBlock(null);
+        },
+      }
+    );
+  };
+
+  const handleDeleteBlock = (block: { id: number; name: string }) => {
+    setSelectedBlock(block);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteBlock = () => {
+    if (!selectedBlock) return;
+    deleteBlock(selectedBlock.id, {
+      onSuccess: () => {
+        setIsDeleteModalOpen(false);
+        setSelectedBlock(null);
+      },
+    });
   };
 
   if (isLoading) {
@@ -44,11 +88,7 @@ export const Blocks = () => {
     );
   }
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    resetError();
-  };
-
+  
   // Validación: asegura que blocks es un array
   const blocksArray = Array.isArray(blocks) ? blocks : [];
 
@@ -73,19 +113,31 @@ export const Blocks = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {blocksArray.map((block) => (
-          <Link
-            to="/blocks/$blockId/pieces"
-            params={{ blockId: block.id.toString() }}
+          <div
             key={block.id}
             className="bg-white border border-gray-200 p-6 rounded-2xl hover:border-blue-300 hover:shadow-xl hover:shadow-blue-900/5 transition-all group flex flex-col justify-between"
           >
-            <div>
-              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-4 group-hover:scale-110 transition-transform">
-                <Box className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-xl text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                {block.name}
-              </h3>
+            <div className="flex justify-between items-start">
+              <Link
+                to="/blocks/$blockId/pieces"
+                params={{ blockId: block.id.toString() }}
+                className="flex-1"
+              >
+                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-4 group-hover:scale-110 transition-transform">
+                  <Box className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-xl text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                  {block.name}
+                </h3>
+              </Link>
+
+              <ActionButtons
+                onEdit={() => handleEditBlock(block)}
+                onDelete={() => handleDeleteBlock(block)}
+                isEditing={isUpdating}
+                isDeleting={isDeleting}
+                size="sm"
+              />
             </div>
 
             <div className="mt-6 flex items-center justify-between text-sm text-gray-500 border-t border-gray-100 pt-4">
@@ -93,7 +145,7 @@ export const Blocks = () => {
                 <GitMerge className="w-4 h-4" /> Bloque ID: {block.id}
               </span>
             </div>
-          </Link>
+          </div>
         ))}
 
         {blocksArray.length === 0 && (
@@ -130,7 +182,10 @@ export const Blocks = () => {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={handleCloseModal}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    resetError();
+                  }}
                   className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancelar
@@ -147,6 +202,66 @@ export const Blocks = () => {
           </div>
         </div>
       )}
+
+      {/* Modal Editar Bloque */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900">Editar Bloque</h2>
+            </div>
+            <form onSubmit={handleUpdateBlock} className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Bloque</label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={editBlockName}
+                  onChange={(e) => setEditBlockName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  placeholder="Ej: Bloque A"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditBlockName('');
+                    setSelectedBlock(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors disabled:opacity-50 flex justify-center items-center cursor-pointer"
+                >
+                  {isUpdating ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Actualizar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmar Eliminación */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedBlock(null);
+        }}
+        onConfirm={confirmDeleteBlock}
+        title="Eliminar Bloque"
+        message={`¿Estás seguro de que deseas eliminar el bloque "${selectedBlock?.name}"? Esta acción también eliminará todas las piezas asociadas y no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+      />
     </div>
   );
 };

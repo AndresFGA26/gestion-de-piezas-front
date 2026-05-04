@@ -1,8 +1,12 @@
-import { useReports } from '../features/reports/hooks';
+import { useReports, useBarChartData, usePieChartData } from '../features/reports/hooks';
 import { BarChart3, PieChart, Activity, Loader2 } from 'lucide-react';
+import { BarChart } from '../components/charts/BarChart';
+import { PieChart as PieChartComponent } from '../components/charts/PieChart';
 
 export const Reports = () => {
   const { data: report, isLoading, isError } = useReports();
+  const { data: barChartData, isLoading: isLoadingBar } = useBarChartData();
+  const { data: pieChartData, isLoading: isLoadingPie } = usePieChartData();
 
   if (isLoading) {
     return (
@@ -27,14 +31,57 @@ export const Reports = () => {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gráfico de Pastel - Piezas por Estado */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <PieChart className="w-6 h-6 text-gray-400" />
+            <h2 className="text-xl font-bold text-gray-900">Piezas por Estado</h2>
+          </div>
+          
+          {(isLoadingPie || !pieChartData) ? (
+            <div className="flex justify-center items-center h-[300px] text-gray-400">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+          ) : (
+            <PieChartComponent 
+              data={pieChartData} 
+              title="Distribución General"
+              height={300}
+            />
+          )}
+        </div>
+
+        {/* Gráfico de Barras - Piezas por Proyecto */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <BarChart3 className="w-6 h-6 text-gray-400" />
+            <h2 className="text-xl font-bold text-gray-900">Piezas por Proyecto</h2>
+          </div>
+          
+          {(isLoadingBar || !barChartData) ? (
+            <div className="flex justify-center items-center h-[300px] text-gray-400">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+          ) : (
+            <BarChart 
+              data={barChartData} 
+              title="Desglose por Proyecto"
+              height={300}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Tarjetas de Resumen */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-8 text-white shadow-lg shadow-blue-900/20">
+        <div className="bg-gradient-to-br from-green-600 to-green-800 rounded-3xl p-8 text-white shadow-lg shadow-green-900/20">
           <div className="flex items-center gap-3 mb-6 opacity-80">
             <Activity className="w-6 h-6" />
             <h2 className="text-xl font-semibold">Piezas Fabricadas</h2>
           </div>
           <p className="text-6xl font-black">{totals['Fabricada'] || 0}</p>
-          <p className="mt-4 text-blue-100 font-medium">Total histórico de la planta</p>
+          <p className="mt-4 text-green-100 font-medium">Total histórico de la planta</p>
         </div>
         
         <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-3xl p-8 text-white shadow-lg shadow-amber-900/20">
